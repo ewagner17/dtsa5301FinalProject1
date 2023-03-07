@@ -1,0 +1,127 @@
+---
+title: "NYPD Shooting Incident Data: Victims of Shooting Incidents in NYC by Sex and Borough"
+date: "2023-01-31"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries:
+```{r library, results='hide', message=FALSE, warning=FALSE}
+library(tidyverse)
+library(readr)
+library(lubridate)
+library(ggplot2)
+```
+# Introduction
+The data set used in the following analysis is the "NYPD Shooting Incident Data (Historic)" from data.gov. It contains the records of every shooting incident in New York City from 2006 through 2022. The intention is to analyse the frequency with which men and women are the victims of shootings in New York City, with the added component of geographical analysis. 
+
+# Data handling
+## Import:
+To begin, the data is imported and read into the variable "shooting_data"
+```{r get_nypd_data, results='hide', message=FALSE, warning=FALSE}
+url_in <- "https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD"
+shooting_data <- read_csv(url_in)
+```
+
+## Tidy:
+The data is now reduced to include only relevant columns
+```{r clean_up}
+reduced_shooting_data = subset(shooting_data, select = -c(INCIDENT_KEY,PRECINCT,VIC_RACE,PERP_RACE,JURISDICTION_CODE,LOCATION_DESC,VIC_AGE_GROUP,PERP_AGE_GROUP,X_COORD_CD,Y_COORD_CD,Latitude,Longitude,Lon_Lat))
+```
+The remaining columns are listed below in alphabetical order.
+```{r columns}
+sort(colnames(reduced_shooting_data))
+```
+Next the date structure is defined to be month-day-year for easier analysis and a column is added for the day of the year (from 1 to 365) to aid in the plotting process.
+```{r by_date}
+reduced_shooting_data$OCCUR_DATE <- mdy(reduced_shooting_data$OCCUR_DATE)
+reduced_shooting_data$YEAR_DAY <- yday(reduced_shooting_data$OCCUR_DATE)
+```
+Below the data is separated into sets specific to each borough and then further divided into the incidents in which the victims were men and the incidents in which the victims were women.
+This data analysis is based on the data provided and, therefore, only accounts for the sex recorded for each victim which may not reflect the gender identity of each of the victims. The data points for which victim sex is recorded as "unknown" are not specifically addressed in this analysis.
+```{r by_boro}
+men <- reduced_shooting_data %>% filter(VIC_SEX == "M")
+women <- reduced_shooting_data %>% filter(VIC_SEX == "F")
+bronx <- reduced_shooting_data %>% filter(BORO == "BRONX")
+bronx_men <- bronx %>% filter(VIC_SEX == "M")
+bronx_women <- bronx %>% filter(VIC_SEX == "F")
+brooklyn <- reduced_shooting_data %>% filter(BORO == "BROOKLYN")
+brooklyn_men <- brooklyn %>% filter(VIC_SEX == "M")
+brooklyn_women <- brooklyn %>% filter(VIC_SEX == "F")
+manhattan <- reduced_shooting_data %>% filter(BORO == "MANHATTAN")
+manhattan_men <- manhattan %>% filter(VIC_SEX == "M")
+manhattan_women <- manhattan %>% filter(VIC_SEX == "F")
+queens <- reduced_shooting_data %>% filter(BORO == "QUEENS")
+queens_men <- queens %>% filter(VIC_SEX == "M")
+queens_women <- queens %>% filter(VIC_SEX == "F")
+staten_island <- reduced_shooting_data %>% filter(BORO == "STATEN ISLAND")
+staten_island_men <- staten_island %>% filter(VIC_SEX == "M")
+staten_island_women <- staten_island %>% filter(VIC_SEX == "F")
+```
+
+## Visualize and Analyze
+The first graph is a histogram showing the frequency of shooting incidents over the course of the year. Each bar on the graph has a binwidth of 5 days and, therefore, represents the number of shooting incidents within those 5 days of the year during each year in the provided data. This allows us to demonstrate the overall trend in shooting incident frequency for the average year between 2006 and 2022.
+```{r freq_year}
+nyc = ggplot(reduced_shooting_data, aes(x=YEAR_DAY)) + geom_histogram(data=men,binwidth = 5, aes(fill=VIC_SEX)) + geom_histogram(data=women,binwidth = 5, aes(fill=VIC_SEX))
+nyc + labs(x = "day of the year", y = "number of shooting incidents", title = "Shooting Incidents in New York City", subtitle = "over the course of the year for 17 years (2006 - 2022)") + theme(legend.position = "right")
+```
+
+
+This graph shows that the lowest shooting incident rate occurs in the first quarter of the year -- the lowest point of the trough appears around day 50, which falls in the end of February. The peak of this graph occurs around day 205 which falls at the end of July. We can also observe that the data for shooting incidents in which men are the victims follow this overall trend very closely. The trends for the shootings in which women are the victims also peak and fall around the same times of year, but these incidence are considerably lower overall and experience less drastic relative changes. 
+
+Now we can break this histogram down by borough to see if there are any clear effects of location on the ratio of male to female shooting victims.
+```{r plot}
+bx = ggplot(bronx, aes(x=YEAR_DAY, fill=VIC_SEX)) +  geom_histogram(data=bronx_men,binwidth = 5, aes(fill=VIC_SEX)) + geom_histogram(data=bronx_women,binwidth = 5, aes(fill=VIC_SEX))
+bx + labs(x = "day of the year", y = "number of shooting incidents", title = "Shooting Incidents in the Bronx", subtitle = "over the course of the year for 17 years (2006 - 2022)") + theme(legend.position = "right")
+bn = ggplot(brooklyn, aes(x=YEAR_DAY)) + geom_histogram(data=brooklyn_men,binwidth = 5, aes(fill=VIC_SEX)) + geom_histogram(data=brooklyn_women,binwidth = 5, aes(fill=VIC_SEX))
+bn + labs(x = "day of the year", y = "number of shooting incidents", title = "Shooting Incidents in Brooklyn", subtitle = "over the course of the year for 17 years (2006 - 2022)") + theme(legend.position = "right")
+mn = ggplot(manhattan, aes(x=YEAR_DAY)) + geom_histogram(data=manhattan_men,binwidth = 5, aes(fill=VIC_SEX)) + geom_histogram(data=manhattan_women,binwidth = 5, aes(fill=VIC_SEX))
+mn + labs(x = "day of the year", y = "number of shooting incidents", title = "Shooting Incidents in Manhattan", subtitle = "over the course of the year for 17 years (2006 - 2022)") + theme(legend.position = "right")
+qs = ggplot(queens, aes(x=YEAR_DAY)) + geom_histogram(data=queens_men,binwidth = 5, aes(fill=VIC_SEX)) + geom_histogram(data=queens_women,binwidth = 5, aes(fill=VIC_SEX))
+qs + labs(x = "day of the year", y = "number of shooting incidents", title = "Shooting Incidents in Queens", subtitle = "over the course of the year for 17 years (2006 - 2022)") + theme(legend.position = "right")
+si = ggplot(staten_island, aes(x=YEAR_DAY)) + geom_histogram(data=staten_island_men,binwidth = 5, aes(fill=VIC_SEX)) + geom_histogram(data=staten_island_women,binwidth = 5, aes(fill=VIC_SEX))
+si + labs(x = "day of the year", y = "number of shooting incidents", title = "Shooting Incidents in Staten Island", subtitle = "over the course of the year for 17 years (2006 - 2022)") + theme(legend.position = "right")
+```
+
+
+From these graphs, it's clear that the overall trend we saw before is consistent throughout the boroughs with the most variation occurring in the boroughs with lower shooting incident frequency. The least consistent being the shooting incidents in Staten Island, which had the lowest overall frequency. This data set also interestingly showcases the only instance where more women than men were the victims of shootings in one borough for a 5 day portion of the year.
+
+
+# Model
+We can further investigate the relationship between the number of male shooting victims and the number of female shooting victims with the following model. We would expect the victim counts to increase linearly due to the similar curves we saw above on the histograms. 
+
+```{r model}
+men_table <- table(men$YEAR_DAY)
+men_df <- as.data.frame(men_table)
+colnames(men_df) <- c("day","men_vic_count")
+women_table <- table(women$YEAR_DAY)
+women_df <- as.data.frame(women_table)
+colnames(women_df) <- c("day","women_vic_count")
+men_women_df <- merge(men_df,women_df, by = "day")
+mod <- lm(men_vic_count ~ women_vic_count, data = men_women_df)
+men_women_w_pred <- men_women_df %>% mutate(pred = predict(mod))
+men_women_w_pred %>% ggplot() + geom_point(aes(x = women_vic_count, y = men_vic_count), color = "green") + geom_point(aes(x = women_vic_count, y = pred), color = "red") + labs(title = "Linear Model")
+```
+
+
+In the plot above we see our hypothesis confirmed: the female victim count increases linearly with the male victim count. This is demonstrated by the predictive model shown in red and the data points shown in green which closely follow.
+
+## Further Questions:
+These visualizations raise a few questions and introduce a few new directions in which this analysis could be taken.
+
+The instance in which more women than men were victims of shootings during one part of the year in Staten Island raises further questions. Is this a trend, or does one incident account for this outlier? It's possible that there was one year in which more women were victims of shootings or that this time of year has consistently high rates in this area. Breaking this data set down further into individual years to analyze separately would help answer these questions.
+
+Along the same lines, there's a particularly high bar around the 250th day in the Brooklyn data. We could ask similar questions here: was there an incident one year that was an outlier? Or does this time of year have consistently high rates of shootings in which men are the victims?
+
+It may also be interesting to examine the relationship between the sex of the victim and the sex of the perpetrator, both on a case by case basis and by following this analysis approach with the PERP_SEX column instead of the VIC_SEX column.
+
+# Conclusion and Bias Identification
+From this data breakdown we can conclude that the frequency with with both men and women are the victims of shootings follows a similar pattern throughout the year in all 5 boroughs. A smaller population has inherently fewer shootings in general, leading to a less obviously identifiable pattern and may warrant further analysis.
+
+As a woman, I may exhibit bias in the form a heightened interest in the data involving women. However, this is mitigated in this instance by the avoidance of diving deeper into any one instance or trend related to one sex and not the other.
